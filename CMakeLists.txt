@@ -627,6 +627,23 @@ else()
 endif()
 
 check_function_exists(getopt_long HAVE_GETOPT_LONG)
+
+#
+# The stateful flow filter uses POSIX regular expressions when
+# available and is thread-safe when pthreads are available.
+#
+check_include_file(regex.h HAVE_REGEX_H)
+if(HAVE_REGEX_H)
+    check_function_exists(regcomp HAVE_REGCOMP)
+endif()
+if(NOT WIN32)
+    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+    find_package(Threads)
+    if(CMAKE_USE_PTHREADS_INIT)
+        set(HAVE_PTHREAD_H TRUE)
+        set(TCPDUMP_LINK_LIBRARIES ${TCPDUMP_LINK_LIBRARIES} Threads::Threads)
+    endif()
+endif()
 #
 # For Windows,  don't need to waste time checking for fork() or vfork().
 #
@@ -1512,7 +1529,7 @@ if(NOT C_ADDITIONAL_FLAGS STREQUAL "")
     set_target_properties(netdissect PROPERTIES COMPILE_FLAGS ${C_ADDITIONAL_FLAGS})
 endif()
 
-set(TCPDUMP_SOURCE_LIST_C fptype.c tcpdump.c)
+set(TCPDUMP_SOURCE_LIST_C fptype.c flowfilter.c tcpdump.c)
 
 if(NOT HAVE_BPF_DUMP)
     set(TCPDUMP_SOURCE_LIST_C ${TCPDUMP_SOURCE_LIST_C} bpf_dump.c)

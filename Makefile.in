@@ -68,7 +68,7 @@ DEPENDENCY_CFLAG = @DEPENDENCY_CFLAG@
 .c.o:
 	$(CC) $(FULL_CFLAGS) -c -o $@ $<
 
-CSRC =	fptype.c tcpdump.c
+CSRC =	fptype.c flowfilter.c tcpdump.c
 
 LIBNETDISSECT_SRC=\
 	addrtoname.c \
@@ -278,6 +278,7 @@ HDR = \
 	ethertype.h \
 	extract.h \
 	fptype.h \
+	flowfilter.h \
 	ftmacros.h \
 	funcattrs.h \
 	getservent.h \

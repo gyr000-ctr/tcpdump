@@ -396,6 +396,14 @@ AC_REPLACE_FUNCS(strlcat strlcpy strsep getservent getopt_long)
 AC_CHECK_FUNCS(fork vfork)
 
 #
+# The stateful flow filter uses POSIX regular expressions when
+# available and is thread-safe when pthreads are available.
+#
+AC_CHECK_HEADERS(regex.h pthread.h)
+AC_CHECK_FUNCS(regcomp)
+AC_SEARCH_LIBS(pthread_mutex_lock, pthread)
+
+#
 # It became apparent at some point that using a suitable C99 compiler does not
 # automatically mean snprintf(3) implementation in the libc supports all the
 # modifiers and specifiers used in the project, so let's test that before the

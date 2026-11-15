@@ -57,6 +57,15 @@
 /* Define to 1 if you have the 'getopt_long' function. */
 #cmakedefine HAVE_GETOPT_LONG 1
 
+/* Define to 1 if you have the 'regcomp' function. */
+#cmakedefine HAVE_REGCOMP 1
+
+/* Define to 1 if you have the <regex.h> header file. */
+#cmakedefine HAVE_REGEX_H 1
+
+/* Define to 1 if you have the <pthread.h> header file. */
+#cmakedefine HAVE_PTHREAD_H 1
+
 /* define if you have getrpcbynumber() */
 #cmakedefine HAVE_GETRPCBYNUMBER 1
 

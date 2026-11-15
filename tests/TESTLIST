@@ -1042,3 +1042,13 @@ bigtcp-ipv6-geneve-ipv6		bigtcp-ipv6-geneve-ipv6.pcap	bigtcp-ipv6-geneve-ipv6.ou
 bigtcp-ipv6-vxlan-ipv4		bigtcp-ipv6-vxlan-ipv4.pcap	bigtcp-ipv6-vxlan-ipv4.out	-v
 bigtcp-ipv6-vxlan-ipv6		bigtcp-ipv6-vxlan-ipv6.pcap	bigtcp-ipv6-vxlan-ipv6.out	-v
 icmp-length-zero		icmp-length-zero.pcapng		icmp-length-zero.out		-v
+
+# Stateful flow filter (--flow-* options).
+flow-first1		flow-basic.pcap		flow-first1.out		--flow-first 1
+flow-first3		flow-basic.pcap		flow-first3.out		--flow-first 3
+flow-dir-fwd		flow-basic.pcap		flow-dir-fwd.out	--flow-dir fwd
+flow-dir-rev		flow-basic.pcap		flow-dir-rev.out	--flow-dir rev
+flow-regex		flow-regex.pcap		flow-regex.out		--flow-regex secret_token
+flow-regex-dir		flow-regex.pcap		flow-regex-dir.out	--flow-regex secret_token --flow-dir rev
+flow-frag		flow-frag.pcap		flow-frag.out		--flow-regex FRAGPATTERN
+flow-full		flow-full.pcap		flow-full.out		--flow-first 1 --flow-max 4

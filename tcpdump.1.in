@@ -454,6 +454,57 @@ the interface.
 Use \fIfile\fP as input for the filter expression.
 An additional expression given on the command line is ignored.
 .TP
+.BI \-\-flow\-first " N"
+Enable stateful flow filtering and pass only the first \fIN\fP packets
+of every flow (a flow is identified by the IP 5-tuple; both directions
+belong to the same flow).  \fIN\fP = 1 captures only the first packet
+of every connection.  This is applied in addition to the stateless BPF
+filter expression, if any.  See the \fBFLOW FILTER\fP section below.
+.TP
+.BI \-\-flow\-regex " pattern"
+Enable stateful flow filtering and pass only packets of flows whose
+payload matches the POSIX extended regular expression \fIpattern\fP.
+Payload is matched against the per-direction byte stream of each flow
+(in arrival order, bounded by \fB\-\-flow\-bufmax\fP), so a pattern can
+match across segment or fragment boundaries.  Packets that arrive
+before the match are buffered (bounded by \fB\-\-flow\-prebuf\fP and
+\fB\-\-flow\-maxmem\fP) and emitted when the flow matches, so the
+entire matching session is captured.
+.TP
+.BI \-\-flow\-dir " direction"
+Restrict stateful flow filtering to one direction of each flow:
+\fIfwd\fP (initiator to responder) or \fIrev\fP (responder to
+initiator); the default is \fIboth\fP.  The initiator is the sender of
+the first packet seen for the flow.
+.TP
+.BI \-\-flow\-max " count"
+Set the maximum number of flow table entries (default 65536).  When
+the table is full, the least recently used flow is evicted; the event
+is counted in the statistics.
+.TP
+.BI \-\-flow\-timeout " seconds"
+Set the idle flow timeout in seconds (default 300).  Flows idle longer
+than this are expired from the table.
+.TP
+.BI \-\-flow\-bufmax " bytes"
+Set the per-flow cap on the payload scan buffer used by
+\fB\-\-flow\-regex\fP (default 16384 bytes).
+.TP
+.BI \-\-flow\-maxmem " bytes"
+Set the global cap on all dynamic buffer memory used by the flow
+filter (default 67108864 bytes).  When the cap is reached, the filter
+fails open: packets are passed as if only the stateless BPF filter
+were in use, and the event is counted.
+.TP
+.B \-\-flow\-stats
+Print flow filter statistics (flows, hits, table-full events,
+evictions, timeouts, fallbacks, memory usage, lock acquisitions) to
+stderr at exit.
+.TP
+.B \-\-flow\-audit
+Log flow lifecycle events (create, evict, timeout, regex match, table
+full) to stderr for auditing.
+.TP
 .B \-g
 .PD 0
 .TP
@@ -1130,6 +1181,64 @@ are obviously not options.  Also the POSIX interpretation does not allow any
 option arguments after the non-option
 .I expression
 argument(s).
+.SH "FLOW FILTER"
+.LP
+The
+.BR \-\-flow\- *
+options enable a stateful flow filter that runs in addition to the
+stateless BPF filter expression.  A flow is identified by the IP
+5-tuple (addresses, protocol, ports, for both IPv4 and IPv6); packets
+in both directions belong to the same flow.  If no
+.BR \-\-flow\- *
+option is given, behavior is exactly the classic stateless filtering.
+.LP
+The filter supports passing only the first packet or the first
+.I N
+packets of every flow
+.RB ( \-\-flow\-first ),
+passing only the packets of flows whose payload matches a regular
+expression
+.RB ( \-\-flow\-regex ),
+and restricting matching to one direction of each flow
+.RB ( \-\-flow\-dir ).
+.LP
+The implementation is fail-open: packets that cannot be classified
+(unsupported link-layer type, truncated headers, non-initial fragments
+of an unknown flow) and resource exhaustion (the global memory cap)
+make the filter pass the packet exactly as the stateless BPF filter
+would, rather than silently dropping it.  Every such event is counted
+in the fallback statistics.
+.LP
+IP fragments are handled: the initial fragment of a datagram
+registers its flow in a bounded fragment map, and non-initial
+fragments are attributed to the same flow (their payload feeds the
+regular-expression scan in arrival order).  Out-of-order delivery does
+not corrupt the flow table, but the payload byte stream used for
+regular-expression matching is assembled in arrival order, not in
+sequence order.
+.LP
+All state is bounded: the flow table is capped by
+.BR \-\-flow\-max ,
+idle flows expire after
+.BR \-\-flow\-timeout ,
+the per-flow payload scan buffer is capped by
+.BR \-\-flow\-bufmax ,
+the per-flow pre-match packet buffer is capped by
+.BR \-\-flow\-prebuf ,
+and the total buffer memory is capped by
+.BR \-\-flow\-maxmem .
+No unbounded per-packet allocation takes place.  The flow table is
+safe to use from concurrent capture threads (all operations are
+serialized on a mutex where pthreads are available).
+.LP
+The pcap output format is unchanged; the filter only selects which
+packets are written or printed.  Statistics about flow hits,
+table-full events, evictions, timeouts, fallbacks, memory usage and
+lock acquisitions are printed at exit with
+.B \-\-flow\-stats
+(and, for live captures, together with the usual capture statistics);
+.B \-\-flow\-audit
+logs flow lifecycle events for auditing.
 .SH EXAMPLES
 .LP
 To print packets on all network interfaces, on Linux

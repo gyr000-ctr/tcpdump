@@ -155,6 +155,8 @@ The Regents of the University of California.  All rights reserved.\n";
 
 #include "fptype.h"
 
+#include "flowfilter.h"
+
 #ifndef PATH_MAX
 #define PATH_MAX 1024
 #endif
@@ -227,6 +229,16 @@ static int immediate_mode;
 static int count_mode;
 static u_int packets_to_skip;
 
+/*
+ * Stateful flow filter (flowfilter.c): configured by the --flow-*
+ * options, disabled by default (pure stateless BPF behavior).
+ */
+static struct flowfilter_config ff_cfg;
+static int ff_enabled;		/* at least one --flow-* option was given */
+static int ff_active;		/* flow filter initialized successfully */
+static int ff_stats_wanted;	/* --flow-stats: print metrics at exit */
+static int ff_emit_dump;	/* emit buffered packets to the dump file */
+
 static int infodelay;
 static int infoprint;
 
@@ -257,6 +269,8 @@ static void print_version(FILE *);
 static void print_usage(FILE *);
 
 static void print_packet(u_char *, const struct pcap_pkthdr *, const u_char *);
+static void flow_emit_packet(void *, const struct pcap_pkthdr *,
+    const u_char *, uint64_t);
 static void dump_packet_and_trunc(u_char *, const struct pcap_pkthdr *, const u_char *);
 static void dump_packet(u_char *, const struct pcap_pkthdr *, const u_char *);
 
@@ -723,6 +737,16 @@ show_remote_devices_and_exit(void)
 #define OPTION_LENGTHS			138
 #define OPTION_TIME_T_SIZE		139
 #define OPTION_SKIP			140
+#define OPTION_FLOW_FIRST		141
+#define OPTION_FLOW_REGEX		142
+#define OPTION_FLOW_DIR			143
+#define OPTION_FLOW_MAX			144
+#define OPTION_FLOW_TIMEOUT		145
+#define OPTION_FLOW_BUFMAX		146
+#define OPTION_FLOW_MAXMEM		147
+#define OPTION_FLOW_STATS		148
+#define OPTION_FLOW_AUDIT		149
+#define OPTION_FLOW_PREBUF		150
 
 static const struct option longopts[] = {
 	{ "buffer-size", required_argument, NULL, 'B' },
@@ -767,6 +791,16 @@ static const struct option longopts[] = {
 	{ "time-t-size", no_argument, NULL, OPTION_TIME_T_SIZE },
 	{ "ip-oneline", no_argument, NULL, 'g' },
 	{ "skip", required_argument, NULL, OPTION_SKIP },
+	{ "flow-first", required_argument, NULL, OPTION_FLOW_FIRST },
+	{ "flow-regex", required_argument, NULL, OPTION_FLOW_REGEX },
+	{ "flow-dir", required_argument, NULL, OPTION_FLOW_DIR },
+	{ "flow-max", required_argument, NULL, OPTION_FLOW_MAX },
+	{ "flow-timeout", required_argument, NULL, OPTION_FLOW_TIMEOUT },
+	{ "flow-bufmax", required_argument, NULL, OPTION_FLOW_BUFMAX },
+	{ "flow-prebuf", required_argument, NULL, OPTION_FLOW_PREBUF },
+	{ "flow-maxmem", required_argument, NULL, OPTION_FLOW_MAXMEM },
+	{ "flow-stats", no_argument, NULL, OPTION_FLOW_STATS },
+	{ "flow-audit", no_argument, NULL, OPTION_FLOW_AUDIT },
 	{ "version", no_argument, NULL, OPTION_VERSION },
 	{ NULL, 0, NULL, 0 }
 };
@@ -2166,6 +2200,73 @@ main(int argc, char **argv)
 			    optarg, NULL, 0, INT_MAX, 0);
 			break;
 
+		case OPTION_FLOW_FIRST:
+			ff_cfg.first_n = (uint64_t)parse_int64(
+			    "flow first-N count", optarg, NULL, 1, INT64_MAX,
+			    10);
+			ff_enabled = 1;
+			break;
+
+		case OPTION_FLOW_REGEX:
+			ff_cfg.pattern = optarg;
+			ff_enabled = 1;
+			break;
+
+		case OPTION_FLOW_DIR:
+			if (ascii_strcasecmp(optarg, "fwd") == 0)
+				ff_cfg.dir = FLOW_DIR_FWD;
+			else if (ascii_strcasecmp(optarg, "rev") == 0)
+				ff_cfg.dir = FLOW_DIR_REV;
+			else if (ascii_strcasecmp(optarg, "both") == 0)
+				ff_cfg.dir = FLOW_DIR_BOTH;
+			else
+				error("invalid --flow-dir value \"%s\" "
+				    "(use fwd, rev or both)", optarg);
+			ff_enabled = 1;
+			break;
+
+		case OPTION_FLOW_MAX:
+			ff_cfg.max_flows = parse_u_int("flow table size",
+			    optarg, NULL, 1, UINT_MAX, 10);
+			ff_enabled = 1;
+			break;
+
+		case OPTION_FLOW_TIMEOUT:
+			ff_cfg.timeout_sec = parse_u_int("flow timeout",
+			    optarg, NULL, 1, UINT_MAX, 10);
+			ff_enabled = 1;
+			break;
+
+		case OPTION_FLOW_BUFMAX:
+			ff_cfg.flow_bufmax = parse_u_int("flow buffer size",
+			    optarg, NULL, 1, UINT_MAX, 10);
+			ff_enabled = 1;
+			break;
+
+		case OPTION_FLOW_PREBUF:
+			ff_cfg.prebuf_max = parse_u_int(
+			    "flow pre-match buffer size", optarg, NULL, 1,
+			    UINT_MAX, 10);
+			ff_enabled = 1;
+			break;
+
+		case OPTION_FLOW_MAXMEM:
+			ff_cfg.max_mem = (uint64_t)parse_int64(
+			    "flow memory cap", optarg, NULL, 1024, INT64_MAX,
+			    10);
+			ff_enabled = 1;
+			break;
+
+		case OPTION_FLOW_STATS:
+			ff_stats_wanted = 1;
+			ff_enabled = 1;
+			break;
+
+		case OPTION_FLOW_AUDIT:
+			ff_cfg.audit = 1;
+			ff_enabled = 1;
+			break;
+
 #ifdef HAVE_PCAP_SET_TSTAMP_PRECISION
 		case OPTION_TSTAMP_MICRO:
 			ndo->ndo_tstamp_precision = PCAP_TSTAMP_PRECISION_MICRO;
@@ -2734,6 +2835,27 @@ DIAG_ON_ASSIGN_ENUM
 		pcap_userdata = (u_char *)ndo;
 	}
 
+	if (ff_enabled) {
+		int ff_rc = flow_filter_init(&ff_cfg, pcap_datalink(pd));
+
+		if (ff_rc == -2)
+			error("%s", flow_filter_errstr());
+		else if (ff_rc == -1) {
+			/*
+			 * Unsupported link-layer type: fall back to
+			 * stateless filtering rather than dropping
+			 * packets.
+			 */
+			(void)fprintf(stderr,
+			    "%s: flow filter disabled (%s); using stateless filtering\n",
+			    program_name, flow_filter_errstr());
+		} else {
+			ff_active = 1;
+			ff_emit_dump = (WFileName != NULL);
+			flow_filter_set_emit(flow_emit_packet, pcap_userdata);
+		}
+	}
+
 #ifdef SIGNAL_REQ_INFO
 	/*
 	 * We can't get statistics when reading from a file rather
@@ -2968,6 +3090,12 @@ DIAG_ON_ASSIGN_ENUM
 	if (count_mode && RFileName != NULL)
 		fprintf(stdout, "%u packet%s\n", packets_captured,
 			PLURAL_SUFFIX(packets_captured));
+
+	if (ff_active) {
+		if (ff_stats_wanted)
+			flow_filter_print_stats(stderr);
+		flow_filter_cleanup();
+	}
 
 	free(cmdbuf);
 	pcap_freecode(&fcode);
@@ -3223,6 +3351,8 @@ info(int verbose)
 		    stats.ps_ifdrop, PLURAL_SUFFIX(stats.ps_ifdrop));
 	} else
 		putc('\n', stderr);
+	if (verbose && ff_active)
+		flow_filter_print_stats(stderr);
 	infoprint = 0;
 }
 
@@ -3324,6 +3454,44 @@ open_new_dump_file(struct dump_info *dump_info)
 #endif
 }
 
+/*
+ * Emit callback for the flow filter: re-emit packets that were
+ * buffered before a flow matched (regex mode).  ctx is the
+ * pcap_userdata pointer of the current capture mode; pktno is the
+ * capture number the packet had when it was first seen.
+ */
+static void
+flow_emit_packet(void *ctx, const struct pcap_pkthdr *h, const u_char *sp,
+    uint64_t pktno)
+{
+	if (ff_emit_dump) {
+		struct dump_info *dump_info = (struct dump_info *)ctx;
+
+		pcap_dump((u_char *)dump_info->pdd, h, sp);
+		if (Uflag)
+			pcap_dump_flush(dump_info->pdd);
+		if (dump_info->ndo != NULL)
+			pretty_print_packet(dump_info->ndo, h, sp,
+			    (u_int)pktno);
+	} else {
+		if (!count_mode)
+			pretty_print_packet((netdissect_options *)ctx, h, sp,
+			    (u_int)pktno);
+	}
+}
+
+/*
+ * Run the stateful flow filter on a packet, if enabled.  Returns
+ * nonzero if the packet must be processed (printed/dumped).
+ */
+static int
+flow_filter_pass(const struct pcap_pkthdr *h, const u_char *sp)
+{
+	if (!ff_active)
+		return 1;
+	return flow_filter_packet(h, sp, packets_captured);
+}
+
 static void
 dump_packet_and_trunc(u_char *user, const struct pcap_pkthdr *h, const u_char *sp)
 {
@@ -3337,6 +3505,13 @@ dump_packet_and_trunc(u_char *user, const struct pcap_pkthdr *h, const u_char *s
 
 	if (packets_captured <= packets_to_skip)
 		return;
+
+	if (!flow_filter_pass(h, sp)) {
+		--infodelay;
+		if (infoprint)
+			info(0);
+		return;
+	}
 
 	/*
 	 * XXX - this won't force the file to rotate on the specified time
@@ -3470,6 +3645,13 @@ dump_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *sp)
 	if (packets_captured <= packets_to_skip)
 		return;
 
+	if (!flow_filter_pass(h, sp)) {
+		--infodelay;
+		if (infoprint)
+			info(0);
+		return;
+	}
+
 	pcap_dump((u_char *)dump_info->pdd, h, sp);
 	if (Uflag)
 		pcap_dump_flush(dump_info->pdd);
@@ -3488,6 +3670,13 @@ print_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *sp)
 	++packets_captured;
 
 	++infodelay;
+
+	if (packets_captured > packets_to_skip && !flow_filter_pass(h, sp)) {
+		--infodelay;
+		if (infoprint)
+			info(0);
+		return;
+	}
 
 	if (!count_mode && packets_captured > packets_to_skip)
 		pretty_print_packet((netdissect_options *)user, h, sp, packets_captured);
@@ -3599,6 +3788,14 @@ print_usage(FILE *f)
 "\t\t[ -s snaplen ] [ --skip count ] [ -T type ] [ --version ]\n");
 	(void)fprintf(f,
 "\t\t[ -V file ] [ -w file ] [ -W filecount ] [ -y datalinktype ]\n");
+	(void)fprintf(f,
+"\t\t[ --flow-first N ] [ --flow-regex pattern ] [ --flow-dir dir ]\n");
+	(void)fprintf(f,
+"\t\t[ --flow-max N ] [ --flow-timeout sec ] [ --flow-bufmax bytes ]\n");
+	(void)fprintf(f,
+"\t\t[ --flow-prebuf bytes ] [ --flow-maxmem bytes ] [ --flow-stats ]\n");
+	(void)fprintf(f,
+"\t\t[ --flow-audit ]\n");
 #ifdef HAVE_PCAP_SET_TSTAMP_PRECISION
 	(void)fprintf(f,
 "\t\t[ --time-stamp-precision precision ] [ --micro ] [ --nano ]\n");
