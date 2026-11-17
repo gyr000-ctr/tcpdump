@@ -1,0 +1,47 @@
+    1  2020-09-13 12:26:40.001000 IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 176)
+    10.0.0.1.51820 > 10.0.0.2.51820: [no cksum] WireGuard, handshake initiation, sender 0x01020304, encrypted-timestamp present, mac1 present (0xd4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4), mac2 absent
+	 ephemeral 0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+	 encrypted-static 0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2
+	 encrypted-timestamp 0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3
+    2  2020-09-13 12:26:41.001001 IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 120)
+    10.0.0.2.51820 > 10.0.0.1.51820: [no cksum] WireGuard, handshake response, sender 0x05060708, receiver 0x01020304, mac1 present (0x11111111111111111111111111111111), mac2 present (0x22222222222222222222222222222222)
+	 ephemeral 0xe5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5
+	 encrypted-empty 0xf6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6
+    3  2020-09-13 12:26:42.001002 IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 92)
+    10.0.0.2.51820 > 10.0.0.1.51820: [no cksum] WireGuard, cookie reply, receiver 0x090a0b0c
+	 nonce 0x333333333333333333333333333333333333333333333333
+	 encrypted-cookie 0x4444444444444444444444444444444444444444444444444444444444444444
+    4  2020-09-13 12:26:43.001003 IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 76)
+    10.0.0.1.51820 > 10.0.0.2.51820: [no cksum] WireGuard, transport data, receiver 0x05060708, counter 1, length 32
+	 encrypted-payload[0..15] 0x55555555555555555555555555555555
+    5  2020-09-13 12:26:44.001004 IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 60)
+    10.0.0.1.51820 > 10.0.0.2.51820: [no cksum] WireGuard, transport data, receiver 0x05060708, counter 2, keepalive
+    6  2020-09-13 12:26:45.001005 IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 1420)
+    10.0.0.1.51820 > 10.0.0.2.51820: [no cksum] WireGuard, transport data, receiver 0x05060708, counter 3, length 1376
+	 encrypted-payload[0..15] 0x77777777777777777777777777777777
+    7  2020-09-13 12:26:46.001006 IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 176)
+    10.0.0.1.40000 > 10.0.0.2.40001: [no cksum] WireGuard, handshake initiation, sender 0x0a0b0c0d, encrypted-timestamp present, mac1 present (0xd4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4), mac2 absent
+	 ephemeral 0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+	 encrypted-static 0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2
+	 encrypted-timestamp 0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3
+    8  2020-09-13 12:26:47.001007 IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 128)
+    10.0.0.1.51820 > 10.0.0.2.51820: [no cksum] WireGuard, handshake initiation, invalid length 100 (expected 148)
+    9  2020-09-13 12:26:48.001008 IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 68)
+    10.0.0.1.51820 > 10.0.0.2.51820: [no cksum] WireGuard, transport data, invalid length 40
+   10  2020-09-13 12:26:49.001009 IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 92)
+    10.0.0.1.51820 > 10.0.0.2.51820: [no cksum] UDP, length 64
+   11  2020-09-13 12:26:50.001010 IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 176)
+    10.0.0.1.51820 > 10.0.0.2.51820: [no cksum] UDP, length 148
+   12  2020-09-13 12:26:51.001011 IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 176)
+    10.0.0.1.51820 > 10.0.0.2.51820: [no cksum] WireGuard, handshake initiation, sender 0x0e0f1011, encrypted-timestamp present [|wireguard]
+   13  2020-09-13 12:26:52.001012 IP6 (hlim 64, next-header UDP (17), payload length 156) fc00:fc00:fc00:fc00:fc00:fc00:fc00:1.51820 > fc00:fc00:fc00:fc00:fc00:fc00:fc00:2.51820: [bad udp cksum 0x0000 -> 0x4472!] WireGuard, handshake initiation, sender 0x11121314, encrypted-timestamp present, mac1 present (0xd4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4), mac2 absent
+	 ephemeral 0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+	 encrypted-static 0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2
+	 encrypted-timestamp 0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3
+   14  2020-09-13 12:26:53.001013 IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 142)
+    10.0.0.1.50000 > 10.0.0.2.4789: [no cksum] VXLAN, flags [I] (0x08), vni 100
+IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 92)
+    192.168.1.1.51820 > 192.168.1.2.51820: [no cksum] WireGuard, transport data, receiver 0x01020304, counter 7, length 48
+	 encrypted-payload[0..15] 0x99999999999999999999999999999999
+   15  2020-09-13 12:26:54.001014 IP (tos 0x0, ttl 64, id 4660, offset 0, flags [none], proto UDP (17), length 48)
+    10.0.0.1.12345 > 10.0.0.2.54321: [no cksum] UDP, length 20

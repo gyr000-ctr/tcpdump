@@ -2,6 +2,7 @@ DayOfTheWeek, Month DD, YYYY / The Tcpdump Group
   Summary for 5.0.0 tcpdump release (so far!)
     Add protocol decoding for:
       ERSPAN: Add support
+      WireGuard: Add support
     Refine protocol decoding for:
       BFD: Add support for S-BFD and spell LAG in uppercase.
       BGP: Parse BGP extended message support capability

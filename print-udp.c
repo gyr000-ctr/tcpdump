@@ -676,6 +676,8 @@ udp_print(netdissect_options *ndo, const u_char *bp, u_int length,
 		else if (IS_SRC_OR_DST_PORT(HTTPS_PORT) &&
 			 quic_detect(ndo, cp, length))
 			quic_print(ndo, cp);
+		else if (wireguard_detect(ndo, cp, length, sport, dport))
+			wireguard_print(ndo, cp, length);
 		else if (sport == BCM_LI_PORT)
 			bcm_li_print(ndo, cp, length);
 		else {

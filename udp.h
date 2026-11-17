@@ -203,6 +203,9 @@ struct udphdr {
 #ifndef GENEVE_PORT
 #define GENEVE_PORT			6081	/* draft-gross-geneve-02 */
 #endif
+#ifndef WIREGUARD_PORT
+#define WIREGUARD_PORT			51820	/* WireGuard default port */
+#endif
 #ifndef SFLOW_PORT
 #define SFLOW_PORT			6343	/* https://sflow.org/developers/specifications.php */
 #endif

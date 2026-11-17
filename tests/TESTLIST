@@ -580,6 +580,11 @@ tftp-T tftp.pcap tftp-T.out -T tftp
 whois			whois.pcap		whois.out
 whois-v		whois.pcap		whois-v.out	-v
 
+# WireGuard tests
+wireguard		wireguard.pcap		wireguard.out
+wireguard-v		wireguard.pcap		wireguard-v.out		-v
+wireguard-vv		wireguard.pcap		wireguard-vv.out	-vv
+
 # HNCP tests
 hncp hncp.pcap hncp.out -vvv
 
